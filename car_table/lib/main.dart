@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar.dart';
 import 'package:curved_labeled_navigation_bar/curved_navigation_bar_item.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const CarTableApp());
@@ -839,6 +840,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final nomeController = TextEditingController();
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
+  String _textoSalvo = "";
   bool esconderSenha = true;
 
   @override
@@ -847,6 +849,21 @@ class _LoginScreenState extends State<LoginScreen> {
     emailController.dispose();
     senhaController.dispose();
     super.dispose();
+  }
+
+  _salvarDados() async {
+    String valorDigitado = emailController.text;
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString("email", valorDigitado);
+    print("operação salvar:$valorDigitado");
+  }
+
+  _recuperarDados() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _textoSalvo = prefs.getString("email") ?? "";
+    });
+    print("operação recuperar:$_textoSalvo");
   }
 
   @override
@@ -886,7 +903,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: emailController,
                 keyboardType: TextInputType.emailAddress,
               ),
+              Text(
+                _textoSalvo,
+                style: TextStyle(fontSize: 20),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  RaisedButton(
+                    child: Text("Salvar"),
+                    onPre,
+
+                    //terminar depois
+                  ),
+                ],
+              ),
               AppTextField(
                 label: 'Senha',
                 hint: 'Digite sua senha',
