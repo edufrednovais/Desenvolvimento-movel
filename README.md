@@ -1,7 +1,6 @@
 # CarTable – Estrutura do projeto
 
-Copie a pasta `lib/` para dentro do seu projeto Flutter, substituindo o `main.dart` antigo.
-As dependências no `pubspec.yaml` continuam as mesmas:
+
 `curved_labeled_navigation_bar` e `shared_preferences`.
 
 ```
