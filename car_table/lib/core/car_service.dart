@@ -36,7 +36,7 @@ class Carro {
   });
 
   /// Expressão regular para placa antiga (ABC1234) ou Mercosul (ABC1D23).
-  static final RegExp _regexPlaca = RegExp(r'^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$');
+  static final RegExp _regexPlaca = RegExp(r'^[A-Z]{3}[0-9]([0-9]{3}|[A-Z][0-9]{2})$');
 
   /// Remove espaços e traços e converte para letras maiúsculas (ex: "abc-1d23" -> "ABC1D23").
   static String formatarPlaca(String placa) {

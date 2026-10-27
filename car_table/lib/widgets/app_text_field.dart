@@ -6,6 +6,7 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTextField extends StatelessWidget {
   /// Texto exibido acima do campo.
@@ -29,6 +30,12 @@ class AppTextField extends StatelessWidget {
   /// Chamado a cada alteração do texto. Opcional.
   final ValueChanged<String>? onChanged;
 
+  /// Filtros/máscaras aplicados ao que é digitado. Opcional.
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// Capitalização automática do teclado. Opcional.
+  final TextCapitalization textCapitalization;
+
   const AppTextField({
     super.key,
     required this.label,
@@ -38,6 +45,8 @@ class AppTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.onChanged,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
@@ -58,6 +67,8 @@ class AppTextField extends StatelessWidget {
           keyboardType: keyboardType,
           obscureText: obscureText,
           onChanged: onChanged,
+          inputFormatters: inputFormatters,
+          textCapitalization: textCapitalization,
           decoration: InputDecoration(hintText: hint, suffixIcon: suffixIcon),
         ),
       ],

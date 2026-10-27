@@ -8,10 +8,52 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/car_service.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/primary_button.dart';
+
+/// Limita a digitação da placa, posição por posição:
+///   3 letras + 4 números            (ABC1234  - padrão antigo)
+///   3 letras + número + letra + 2 números (ABC1D23 - Mercosul)
+/// Converte para maiúsculas e ignora espaço/hífen e caracteres inválidos.
+class PlacaInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final entrada = newValue.text.toUpperCase();
+    final saida = StringBuffer();
+
+    for (final ch in entrada.split('')) {
+      final pos = saida.length;
+      if (pos >= 7) break;
+
+      final ehLetra = RegExp(r'[A-Z]').hasMatch(ch);
+      final ehNumero = RegExp(r'[0-9]').hasMatch(ch);
+
+      final bool aceito;
+      if (pos <= 2) {
+        aceito = ehLetra; // letras
+      } else if (pos == 3) {
+        aceito = ehNumero; // número
+      } else if (pos == 4) {
+        aceito = ehNumero || ehLetra; // número (antiga) ou letra (Mercosul)
+      } else {
+        aceito = ehNumero; // posições 5 e 6: números
+      }
+      if (aceito) saida.write(ch);
+    }
+
+    final texto = saida.toString();
+    return TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+}
 
 class CarForm extends StatefulWidget {
   /// Dono do carro (usuário logado).
@@ -78,6 +120,10 @@ class _CarFormState extends State<CarForm> {
         placa.isEmpty ||
         cor.isEmpty) {
       setState(() => _erro = 'Preencha todos os campos.');
+      return;
+    }
+    if (!Carro.validarPlaca(placa)) {
+      setState(() => _erro = 'Placa inválida. Use ABC1234 ou ABC1D23.');
       return;
     }
     if (ano == null || ano < 1900 || ano > DateTime.now().year + 1) {
@@ -157,6 +203,8 @@ class _CarFormState extends State<CarForm> {
                 label: 'Placa',
                 hint: 'Ex: ABC1D23',
                 controller: _placaController,
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: [PlacaInputFormatter()],
               ),
               const SizedBox(height: 14),
               AppTextField(
