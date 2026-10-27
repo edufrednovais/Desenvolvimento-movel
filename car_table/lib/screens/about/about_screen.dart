@@ -99,7 +99,7 @@ class AboutScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: 4),
+      bottomNavigationBar: const AppBottomNavigation(currentIndex: 2),
     );
   }
 }

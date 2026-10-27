@@ -4,7 +4,7 @@
 //
 // Cada tela passa o seu próprio `currentIndex` para a barra
 // destacar o ícone correto:
-//   0 = Inicial | 1 = Carro | 2 = Mapa | 3 = Login | 4 = Sobre
+//   0 = Inicial | 1 = Carro (login + mapa) | 2 = Sobre
 //
 // A ORDEM dos itens abaixo precisa ser a mesma da lista `_rotas`.
 // ============================================================
@@ -17,7 +17,7 @@ import '../core/app_colors.dart';
 import '../core/app_routes.dart';
 
 class AppBottomNavigation extends StatelessWidget {
-  /// Posição (0 a 4) do item que deve aparecer selecionado.
+  /// Posição (0 a 2) do item que deve aparecer selecionado.
   final int currentIndex;
 
   const AppBottomNavigation({super.key, required this.currentIndex});
@@ -26,8 +26,6 @@ class AppBottomNavigation extends StatelessWidget {
   static const List<String> _rotas = [
     AppRoutes.home,
     AppRoutes.car,
-    AppRoutes.map,
-    AppRoutes.login,
     AppRoutes.about,
   ];
 
@@ -50,14 +48,6 @@ class AppBottomNavigation extends StatelessWidget {
         CurvedNavigationBarItem(
           child: Icon(Icons.directions_car_outlined, color: Colors.white),
           label: 'Carro',
-        ),
-        CurvedNavigationBarItem(
-          child: Icon(Icons.map_outlined, color: Colors.white),
-          label: 'Mapa',
-        ),
-        CurvedNavigationBarItem(
-          child: Icon(Icons.person_outline, color: Colors.white),
-          label: 'Login',
         ),
         CurvedNavigationBarItem(
           child: Icon(Icons.info_outline, color: Colors.white),

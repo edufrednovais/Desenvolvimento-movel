@@ -1,8 +1,9 @@
 // ============================================================
-// screens/map/map_screen.dart
-// 3. TELA MAPA
-// Mostra o card do carro, o mapa (desenhado), o marcador do
-// veículo, o endereço atual e o painel de status.
+// screens/map/map_view.dart
+// MAPA DO CARRO (usado dentro da tela do Carro, após o login)
+// Mostra o card do carro (toque para trocar o modelo), o mapa
+// (desenhado), o marcador do veículo, o endereço atual e o
+// painel de status.
 //
 // Todos os dados abaixo são FICTÍCIOS (valores fixos).
 // TODO: trocar por dados reais do rastreador / GPS.
@@ -11,44 +12,33 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
-import '../../widgets/app_bottom_navigation.dart';
 import 'map_painter.dart';
 import 'status_item.dart';
 import 'vehicle_marker.dart';
 
-class MapScreen extends StatelessWidget {
-  const MapScreen({super.key});
+class MapView extends StatelessWidget {
+  /// Modelo escolhido pelo usuário (null = ainda não escolheu).
+  final String? carModel;
+
+  /// Chamado ao tocar no card do carro (abre a escolha do modelo).
+  final VoidCallback onSelectModel;
+
+  const MapView({
+    super.key,
+    required this.carModel,
+    required this.onSelectModel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // ---- Barra superior ----
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
-        title: const Text(
-          'CarTable',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Card com o nome e o estado do carro
-          _buildCarCard(),
+    return Column(
+      children: [
+        // Card com o modelo e o estado do carro
+        _buildCarCard(),
 
-          // Área do mapa (ocupa o espaço restante)
-          Expanded(child: _buildMapArea()),
-        ],
-      ),
-      bottomNavigationBar: const AppBottomNavigation(currentIndex: 2),
+        // Área do mapa (ocupa o espaço restante)
+        Expanded(child: _buildMapArea()),
+      ],
     );
   }
 
@@ -58,31 +48,37 @@ class MapScreen extends StatelessWidget {
   Widget _buildCarCard() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Container(
+      child: InkWell(
+        onTap: onSelectModel,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: Colors.white10),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               backgroundColor: Colors.white10,
               child: Icon(Icons.directions_car, color: Colors.white),
             ),
-            SizedBox(width: 14),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Meu Carro',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    carModel ?? 'Selecione o modelo do carro',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
                   // Bolinha verde + texto de estado
-                  Row(
+                  const Row(
                     children: [
                       CircleAvatar(radius: 4, backgroundColor: Colors.green),
                       SizedBox(width: 6),
@@ -95,8 +91,17 @@ class MapScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.white54),
+            Text(
+              carModel == null ? 'Escolher' : 'Trocar',
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white54),
           ],
+        ),
         ),
       ),
     );

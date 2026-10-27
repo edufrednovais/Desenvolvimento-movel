@@ -64,15 +64,15 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const Spacer(),
 
-                    // ---- Botão principal: abre o mapa ----
+                    // ---- Botão principal: abre o carro (login ou mapa) ----
                     PrimaryButton(
                       text: 'Começar',
                       onPressed: () =>
-                          Navigator.pushNamed(context, AppRoutes.map),
+                          Navigator.pushNamed(context, AppRoutes.car),
                     ),
                     const SizedBox(height: 18),
 
-                    // ---- Link para a tela de login ----
+                    // ---- Link para o login (tela do Carro) ----
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -82,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         GestureDetector(
                           onTap: () =>
-                              Navigator.pushNamed(context, AppRoutes.login),
+                              Navigator.pushNamed(context, AppRoutes.car),
                           child: const Text(
                             'Entrar',
                             style: TextStyle(

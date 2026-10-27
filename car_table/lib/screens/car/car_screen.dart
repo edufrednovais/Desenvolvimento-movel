@@ -1,17 +1,24 @@
 // ============================================================
 // screens/car/car_screen.dart
 // 2. TELA DO CARRO
-// Formulário para cadastrar o carro (nome + placa) e um card
-// de pré-visualização que atualiza enquanto o usuário digita.
-// A placa é formatada automaticamente (ex: ABC-1234).
+// Funciona como uma "porta de entrada":
+//   - NÃO logado -> mostra o login / criação de conta (AuthForm)
+//   - logado     -> mostra o mapa, o carro selecionado e o botão
+//                   "Sair". Tocando no card do carro abre a lista
+//                   "Meus carros" (cadastrar, editar, excluir).
+// Usuários e carros ficam no banco SQLite (AuthService e
+// CarService); o login continua mesmo fechando o app.
 // ============================================================
 
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/auth_service.dart';
+import '../../core/car_service.dart';
 import '../../widgets/app_bottom_navigation.dart';
-import '../../widgets/app_text_field.dart';
-import '../../widgets/primary_button.dart';
+import '../map/map_view.dart';
+import 'auth_form.dart';
+import 'car_list_sheet.dart';
 
 class CarScreen extends StatefulWidget {
   const CarScreen({super.key});
@@ -21,212 +28,140 @@ class CarScreen extends StatefulWidget {
 }
 
 class _CarScreenState extends State<CarScreen> {
-  // Controllers: guardam o que o usuário digitou em cada campo.
-  final nomeCarroController = TextEditingController();
-  final placaController = TextEditingController();
+  /// Usuário logado (null = ninguém logado).
+  UsuarioLogado? _usuario;
+
+  /// Carros do usuário logado e o ID do carro selecionado.
+  List<Carro> _carros = [];
+  int? _carroSelecionadoId;
+
+  /// true enquanto lê a sessão salva no aparelho.
+  bool _carregando = true;
 
   @override
   void initState() {
     super.initState();
-    // Reconstrói a tela a cada letra digitada, para o card de
-    // pré-visualização (no fim da tela) mostrar o texto atual.
-    nomeCarroController.addListener(() => setState(() {}));
-    placaController.addListener(() => setState(() {}));
+    _carregarSessao();
   }
 
-  @override
-  void dispose() {
-    // Libera a memória dos controllers ao sair da tela.
-    nomeCarroController.dispose();
-    placaController.dispose();
-    super.dispose();
+  Future<void> _carregarSessao() async {
+    final usuario = await AuthService.usuarioAtual();
+    final carros =
+        usuario == null ? <Carro>[] : await CarService.listar(usuario.id);
+    if (!mounted) return;
+    setState(() {
+      _usuario = usuario;
+      _carros = carros;
+      _carroSelecionadoId = carros.isEmpty ? null : carros.first.id;
+      _carregando = false;
+    });
   }
 
-  // ----------------------------------------------------------
-  // LÓGICA DA PLACA
-  // ----------------------------------------------------------
+  Future<void> _sair() async {
+    await AuthService.sair();
+    if (!mounted) return;
+    setState(() {
+      _usuario = null;
+      _carros = [];
+      _carroSelecionadoId = null;
+    });
+  }
 
-  /// Remove símbolos, limita a 7 caracteres, coloca o hífen
-  /// depois do 3º caractere e converte para maiúsculas.
-  /// Ex: "abc1234" -> "ABC-1234"
-  String formatarPlaca(String placa) {
-    // Mantém só letras e números
-    String texto = placa.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-
-    // Placa tem no máximo 7 caracteres
-    if (texto.length > 7) {
-      texto = texto.substring(0, 7);
+  /// Carro selecionado no momento (null se não houver nenhum).
+  Carro? get _carroSelecionado {
+    for (final carro in _carros) {
+      if (carro.id == _carroSelecionadoId) return carro;
     }
-
-    // Insere o hífen: ABC + - + 1234
-    if (texto.length > 3) {
-      texto = '${texto.substring(0, 3)}-${texto.substring(3)}';
-    }
-    return texto.toUpperCase();
+    return null;
   }
 
-  /// Chamado a cada alteração no campo de placa.
-  /// Troca o texto digitado pelo texto já formatado.
-  void atualizarPlaca(String valor) {
-    final placaFormatada = formatarPlaca(valor);
+  /// Abre a lista "Meus carros" (cadastrar, editar, excluir, escolher).
+  /// Ao fechar, recarrega os carros do banco, pois podem ter mudado.
+  Future<void> _abrirMeusCarros() async {
+    final escolhidoId = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => CarListSheet(
+        usuarioId: _usuario!.id,
+        selecionadoId: _carroSelecionadoId,
+      ),
+    );
 
-    // Só atualiza se mudou (evita loop infinito de atualizações).
-    if (placaController.text != placaFormatada) {
-      placaController.value = TextEditingValue(
-        text: placaFormatada,
-        // Mantém o cursor sempre no final do texto.
-        selection: TextSelection.collapsed(offset: placaFormatada.length),
-      );
-    }
+    final carros = await CarService.listar(_usuario!.id);
+    if (!mounted) return;
+    setState(() {
+      _carros = carros;
+      // Prioridade: o carro tocado na lista; senão mantém o atual;
+      // se ele foi excluído, usa o primeiro da lista.
+      final idDesejado = escolhidoId ?? _carroSelecionadoId;
+      final existe = carros.any((c) => c.id == idDesejado);
+      _carroSelecionadoId =
+          existe ? idDesejado : (carros.isEmpty ? null : carros.first.id);
+    });
   }
-
-  // ----------------------------------------------------------
-  // INTERFACE
-  // ----------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
+    final usuario = _usuario;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: const Text(
-          'Carro',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          usuario == null ? 'Login' : 'Meu carro',
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 30),
-
-              // ---- Ícone circular do topo ----
-              _buildHeaderIcon(),
-              const SizedBox(height: 25),
-
-              // ---- Títulos ----
-              const Text(
-                'Cadastrar carro',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Informe os dados do seu veículo',
-                style: TextStyle(color: Colors.white54, fontSize: 14),
-              ),
-              const SizedBox(height: 40),
-
-              // ---- Campos do formulário ----
-              AppTextField(
-                label: 'Nome do carro',
-                hint: 'Ex: Honda Civic',
-                controller: nomeCarroController,
-              ),
-              const SizedBox(height: 20),
-              AppTextField(
-                label: 'Placa',
-                hint: 'ABC-1234',
-                controller: placaController,
-                onChanged: atualizarPlaca, // formata enquanto digita
-              ),
-              const SizedBox(height: 35),
-
-              // ---- Botão de cadastro ----
-              // TODO: salvar de verdade (banco de dados / API).
-              PrimaryButton(
-                text: 'Cadastrar carro',
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Carro cadastrado com sucesso!'),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 30),
-
-              // ---- Pré-visualização do carro ----
-              _buildPreviewCard(),
-            ],
-          ),
-        ),
-      ),
+      body: _carregando
+          ? const Center(child: CircularProgressIndicator())
+          : usuario == null
+              ? AuthForm(onAuthenticated: _carregarSessao)
+              : _buildLogado(usuario),
       bottomNavigationBar: const AppBottomNavigation(currentIndex: 1),
     );
   }
 
-  /// Círculo com o ícone de carro no topo da tela.
-  Widget _buildHeaderIcon() {
-    return Container(
-      width: 90,
-      height: 90,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white12),
-      ),
-      child: const Icon(
-        Icons.directions_car,
-        size: 45,
-        color: AppColors.primary,
-      ),
-    );
-  }
-
-  /// Card que mostra o nome e a placa digitados.
-  /// Se os campos estiverem vazios, mostra textos padrão.
-  Widget _buildPreviewCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          // Ícone do carro
-          Container(
-            width: 50,
-            height: 50,
-            decoration: const BoxDecoration(
-              color: Colors.white10,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.directions_car, color: Colors.white),
-          ),
-          const SizedBox(width: 15),
-
-          // Nome + placa
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  nomeCarroController.text.isEmpty
-                      ? 'Meu carro'
-                      : nomeCarroController.text,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+  /// Conteúdo para usuário logado: saudação + Sair, e o mapa.
+  Widget _buildLogado(UsuarioLogado usuario) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+          child: Row(
+            children: [
+              const Icon(Icons.person_outline, color: Colors.white54),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Olá, ${usuario.nome}',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  placaController.text.isEmpty
-                      ? 'Sem placa cadastrada'
-                      : placaController.text,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
-            ),
+              ),
+              TextButton.icon(
+                onPressed: _sair,
+                icon: const Icon(Icons.logout, size: 18),
+                label: const Text('Sair'),
+                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: MapView(
+            carModel: _carroSelecionado == null
+                ? null
+                : '${_carroSelecionado!.nomeCarro} • ${_carroSelecionado!.placa}',
+            onSelectModel: _abrirMeusCarros,
+          ),
+        ),
+      ],
     );
   }
 }

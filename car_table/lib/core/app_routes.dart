@@ -15,8 +15,6 @@ import 'package:flutter/material.dart';
 import '../screens/about/about_screen.dart';
 import '../screens/car/car_screen.dart';
 import '../screens/home/home_screen.dart';
-import '../screens/login/login_screen.dart';
-import '../screens/map/map_screen.dart';
 
 class AppRoutes {
   AppRoutes._();
@@ -24,16 +22,12 @@ class AppRoutes {
   // ---- Nomes das rotas (use sempre estas constantes, nunca texto solto) ----
   static const String home = '/';
   static const String car = '/car';
-  static const String map = '/map';
-  static const String login = '/login';
   static const String about = '/about';
 
   /// Mapa que liga cada nome de rota à sua tela.
   static Map<String, WidgetBuilder> get routes => {
         home: (_) => const HomeScreen(),
         car: (_) => const CarScreen(),
-        map: (_) => const MapScreen(),
-        login: (_) => const LoginScreen(),
         about: (_) => const AboutScreen(),
       };
 }
